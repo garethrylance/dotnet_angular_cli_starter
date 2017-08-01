@@ -1,0 +1,96 @@
+- hosts: all
+
+  vars:
+    haproxy_app_name: dotnetServer
+    haproxy_backend_servers:
+      - {name: server1, ip: 127.0.0.1, port: 6060}
+    haproxy_stats_users:
+      - {username: gareth, password: Oxford01}
+    dotnetServerInstallLocation: /var/local/dotnetServer
+    dotnetServerPort: 6060
+  tasks:
+    - name: update apt cache
+      apt: update_cache=yes cache_valid_time=3600
+
+    - name: Install basics 
+      apt: name={{item}} state=present
+      with_items:
+          - unzip
+
+    - name: install haproxy
+      apt: name=haproxy state=present
+      
+    - name: Enable init script
+      replace: dest='/etc/default/haproxy' 
+         regexp='ENABLED=0'
+         replace='ENABLED=1'
+
+    - name: Update HAProxy config
+      template: src=templates/haproxy.cfg 
+            dest=/etc/haproxy/haproxy.cfg 
+            backup=yes
+      notify: 
+        - restart haproxy
+
+
+    - name: Install dotNet public signing key
+      apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: 417A0893
+        state: present
+
+    - name: Install apt-transport-https
+      apt:
+        name: apt-transport-https
+        state: latest
+        install_recommends: no
+    
+    - name: Save the dotnetdev repository definition
+      apt_repository:
+        repo: deb https://apt-mo.trafficmanager.net/repos/dotnet-release/ xenial main
+        state: present
+        filename: 'dotnetdev.list'
+
+    - name: dotnet haproxy
+      apt: name=dotnet-dev-1.0.4 state=present
+      
+    - name: ensure {{dotnetServerInstallLocation}} directory exists
+      file:
+        path: "{{dotnetServerInstallLocation}}"
+        state: absent
+
+    - name: ensure {{dotnetServerInstallLocation}} directory exists
+      file:
+        path: "{{dotnetServerInstallLocation}}"
+        state: directory
+
+    - unarchive:
+        src: ../artifacts/publish.zip
+        dest: /var/local/dotnetServer
+
+    - name: Install supervisor 
+      apt: name={{item}} state=present
+      with_items:
+          - supervisor
+
+
+    - name: Update dotnetServer.conf config
+      template: src=templates/dotnetServer.conf 
+            dest=/etc/supervisor/conf.d/dotnetServer.conf 
+            backup=yes
+      notify: 
+        - restart supervisor
+
+
+
+
+  handlers:
+    - name: restart haproxy
+      service: 
+        name: haproxy 
+        state: restarted
+
+    - name: restart supervisor
+      service: 
+        name: supervisor 
+        state: restarted

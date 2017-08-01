@@ -1,0 +1,12 @@
+<nav class="sidebar" [ngClass]="{sidebarPushRight: isActive}">
+    <ul class="list-group">
+        <a [routerLink]="['/app/home']" [routerLinkActive]="['router-link-active']" class="list-group-item">
+            <i class="fa fa-fw fa-home"></i>&nbsp;{{ 'home'  }}
+        </a>
+
+        <a [routerLink]="['/app/term']" [routerLinkActive]="['router-link-active']" class="list-group-item">
+            <i class="fa fa-fw fa-terminal"></i>&nbsp;{{ 'term'  }}
+        </a>
+
+    </ul>
+</nav>
